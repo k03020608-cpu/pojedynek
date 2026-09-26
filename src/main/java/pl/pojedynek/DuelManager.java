@@ -21,7 +21,6 @@ import java.util.UUID;
 
 public final class DuelManager {
 
-    /** Klucz metadanych sprawdzany przez plugin Lifesteal - gracz z tą metadaną nie traci/zyskuje serca za śmierć. */
     public static final String METADATA_W_POJEDYNKU = "wPojedynku";
 
     private static final long WAZNOSC_WYZWANIA_MS = 60_000L;
@@ -32,7 +31,6 @@ public final class DuelManager {
 
     private final Map<UUID, Wyzwanie> oczekujace = new HashMap<>();
     private final Map<UUID, Sesja> aktywne = new HashMap<>();
-    /** Zawieszone (jeszcze nieoddane) ekwipunki - klucz to UUID gracza, dla bezpieczeństwa na wypadek restartu/rozłączenia. */
     private final Map<UUID, ZawieszonyStan> zawieszone = new HashMap<>();
 
     public DuelManager(JavaPlugin plugin, ArenaManager arena) {
@@ -40,8 +38,6 @@ public final class DuelManager {
         this.arena = arena;
         this.file = new File(plugin.getDataFolder(), "zawieszone.yml");
     }
-
-    // ---------- Wyzwania ----------
 
     private record Wyzwanie(UUID wyzywajacy, long czasUtworzenia) {
     }
@@ -71,8 +67,6 @@ public final class DuelManager {
         oczekujace.values().removeIf(w -> w.wyzywajacy().equals(uuid));
     }
 
-    // ---------- Sesje pojedynku ----------
-
     private static final class Sesja {
         final UUID gracz1;
         final UUID gracz2;
@@ -92,7 +86,6 @@ public final class DuelManager {
         return aktywne.containsKey(uuid);
     }
 
-    /** Zwraca online przeciwnika gracza z jego bieżącego pojedynku, albo null. */
     public Player znajdzPrzeciwnika(UUID uuid) {
         Sesja sesja = aktywne.get(uuid);
         if (sesja == null) {
@@ -109,7 +102,6 @@ public final class DuelManager {
             return false;
         }
 
-        // Zapamiętaj skąd ich zabrano i co mieli w ekwipunku.
         zapiszStan(p1);
         zapiszStan(p2);
 
@@ -122,7 +114,6 @@ public final class DuelManager {
         p1.teleport(arena.getSpawn1());
         p2.teleport(arena.getSpawn2());
 
-        // Nadaj obu graczom rangę "pojedynek" na czas walki (np. żeby dać im inne uprawnienia/chat).
         nadajRange(p1.getName(), "pojedynek");
         nadajRange(p2.getName(), "pojedynek");
 
@@ -136,7 +127,6 @@ public final class DuelManager {
         return true;
     }
 
-    /** Kończy pojedynek gracza (np. po jego śmierci) - odsyła oboje uczestników do domu z ich rzeczami. */
     public void zakonczPojedynekGracza(UUID zmarly) {
         Sesja sesja = aktywne.get(zmarly);
         if (sesja == null || sesja.zakonczona) {
@@ -148,39 +138,35 @@ public final class DuelManager {
         aktywne.remove(sesja.gracz1);
         aktywne.remove(sesja.gracz2);
 
-        przywrocGracza(zmarly);
-        przywrocGracza(przeciwnik);
+        odepnijMetadaneIRange(zmarly);
+        odepnijMetadaneIRange(przeciwnik);
+
+        przywrocStan(przeciwnik);
     }
 
-    /** Wołane przy rozłączeniu gracza w trakcie pojedynku - kończy pojedynek dla obu stron. */
     public void przerwijJesliWPojedynku(UUID uuid) {
         if (jestWPojedynku(uuid)) {
             zakonczPojedynekGracza(uuid);
         }
     }
 
-    private void przywrocGracza(UUID uuid) {
+    private void odepnijMetadaneIRange(UUID uuid) {
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
             player.removeMetadata(METADATA_W_POJEDYNKU, plugin);
             nadajRange(player.getName(), "default");
         } else {
-            // Gracz offline (np. rozłączył się) - i tak spróbuj cofnąć rangę po jego znanej nazwie.
             String nazwa = Bukkit.getOfflinePlayer(uuid).getName();
             if (nazwa != null) {
                 nadajRange(nazwa, "default");
             }
         }
-        przywrocStan(uuid);
     }
 
-    /** Wykonuje "/lp user <gracz> parent set <ranga>" z konsoli. */
     private void nadajRange(String nazwaGracza, String ranga) {
         Bukkit.getScheduler().runTask(plugin, () ->
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + nazwaGracza + " parent set " + ranga));
     }
-
-    // ---------- Zawieszony stan (ekwipunek + pozycja sprzed pojedynku) ----------
 
     private static final class ZawieszonyStan {
         final ItemStack[] contents;
@@ -208,7 +194,6 @@ public final class DuelManager {
         save();
     }
 
-    /** Przywraca ekwipunek i pozycję gracza sprzed pojedynku, jeśli jakiś zawieszony stan czeka. */
     public void przywrocStan(UUID uuid) {
         ZawieszonyStan stan = zawieszone.remove(uuid);
         if (stan == null) {
@@ -218,8 +203,6 @@ public final class DuelManager {
 
         Player player = Bukkit.getPlayer(uuid);
         if (player == null) {
-            // Gracz offline - stan i tak został usunięty z mapy zawieszonych, więc trzeba by go inaczej oddać.
-            // W praktyce nie powinno się zdarzyć, bo przywracamy stan zaraz po śmierci/rozłączeniu.
             return;
         }
 
@@ -233,7 +216,6 @@ public final class DuelManager {
         }
     }
 
-    /** Czy dla tego gracza czeka jeszcze nieoddany ekwipunek (np. po restarcie serwera w trakcie pojedynku). */
     public boolean maZawieszonyStan(UUID uuid) {
         return zawieszone.containsKey(uuid);
     }
@@ -248,8 +230,6 @@ public final class DuelManager {
         }
         return kopia;
     }
-
-    // ---------- Zapis / odczyt (bezpieczeństwo na wypadek restartu w trakcie pojedynku) ----------
 
     public void load() {
         zawieszone.clear();
