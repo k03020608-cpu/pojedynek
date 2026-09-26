@@ -2,6 +2,7 @@ package pl.pojedynek;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -9,19 +10,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PojedynekListener implements Listener {
 
+    private final JavaPlugin plugin;
     private final DuelManager duel;
 
-    public PojedynekListener(DuelManager duel) {
+    public PojedynekListener(JavaPlugin plugin, DuelManager duel) {
+        this.plugin = plugin;
         this.duel = duel;
     }
 
-    /**
-     * MONITOR - wykonuje się jako jeden z ostatnich, żeby inne pluginy (np. Lifesteal)
-     * zdążyły odczytać metadane gracza ZANIM je usuniemy przy kończeniu pojedynku.
-     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent event) {
         Player ofiara = event.getEntity();
@@ -29,7 +30,6 @@ public final class PojedynekListener implements Listener {
             return;
         }
 
-        // Nie zostawiaj na ziemi itemów z zestawu pojedynkowego - i tak zaraz oddamy prawdziwy ekwipunek.
         event.getDrops().clear();
         event.setDroppedExp(0);
 
@@ -51,10 +51,19 @@ public final class PojedynekListener implements Listener {
         duel.przerwijJesliWPojedynku(event.getPlayer().getUniqueId());
     }
 
-    /**
-     * Siatka bezpieczeństwa: jeśli gracz wylogował się/serwer zrestartował się w trakcie
-     * pojedynku, przy powrocie na serwer automatycznie oddajemy mu jego prawdziwy ekwipunek.
-     */
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        if (!duel.maZawieszonyStan(player.getUniqueId())) {
+            return;
+        }
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            duel.przywrocStan(player.getUniqueId());
+            player.sendMessage(Component.text("Odzyskujesz swój ekwipunek sprzed pojedynku.", NamedTextColor.YELLOW));
+        });
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
