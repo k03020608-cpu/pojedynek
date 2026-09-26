@@ -1,0 +1,43 @@
+name: Pojedynek
+version: '1.0.0'
+main: pl.pojedynek.PojedynekPlugin
+api-version: '26.2'
+description: Pojedynki 1v1 z akceptacją, wspólnymi itemami i powrotem do domu
+
+commands:
+  pojedynek:
+    description: Wyzywa gracza na pojedynek
+    usage: /pojedynek <gracz>
+    permission: pojedynek.uzyj
+  pojedynekakceptuj:
+    description: Akceptuje otrzymane wyzwanie na pojedynek
+    usage: /pojedynekakceptuj
+    permission: pojedynek.uzyj
+  pojedynekodrzuc:
+    description: Odrzuca otrzymane wyzwanie na pojedynek
+    usage: /pojedynekodrzuc
+    permission: pojedynek.uzyj
+  ustawpojedynek:
+    description: Admin wymusza pojedynek między dwoma graczami
+    usage: /ustawpojedynek <gracz1> <gracz2>
+    permission: pojedynek.admin
+  pojedynekustawmiejsce1:
+    description: Ustawia miejsce pojawienia się gracza 1 na arenie (Twoja aktualna pozycja)
+    usage: /pojedynekustawmiejsce1
+    permission: pojedynek.admin
+  pojedynekustawmiejsce2:
+    description: Ustawia miejsce pojawienia się gracza 2 na arenie (Twoja aktualna pozycja)
+    usage: /pojedynekustawmiejsce2
+    permission: pojedynek.admin
+  pojedynekustawitemy:
+    description: Ustawia zestaw itemów na pojedynek na podstawie Twojego aktualnego ekwipunku
+    usage: /pojedynekustawitemy
+    permission: pojedynek.admin
+
+permissions:
+  pojedynek.uzyj:
+    description: Pozwala wyzywać graczy i odpowiadać na wyzwania
+    default: false
+  pojedynek.admin:
+    description: Pozwala ustawiać arenę, itemy i wymuszać pojedynki
+    default: false
