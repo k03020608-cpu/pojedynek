@@ -16,7 +16,7 @@ public final class PojedynekPlugin extends JavaPlugin {
         duel = new DuelManager(this, arena);
         duel.load();
 
-        getServer().getPluginManager().registerEvents(new PojedynekListener(duel), this);
+        getServer().getPluginManager().registerEvents(new PojedynekListener(this, duel), this);
 
         PojedynekCommands commands = new PojedynekCommands(arena, duel);
         String[] nazwyKomend = {
