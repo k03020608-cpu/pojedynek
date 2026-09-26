@@ -1,0 +1,28 @@
+name: Build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pokaż strukturę repozytorium
+        run: find . -not -path "./.git/*" -type f
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+      - name: Build
+        run: gradle build --stacktrace
+      - name: Pokaż co powstało
+        if: always()
+        run: find . -path "*/build/libs/*" -type f || echo "Nie znaleziono build/libs"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pojedynek
+          path: '**/build/libs/*.jar'
+          if-no-files-found: error
